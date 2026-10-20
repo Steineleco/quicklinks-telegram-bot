@@ -1,0 +1,68 @@
+require('dotenv').config();
+const TelegramBot = require('node-telegram-bot-api');
+const admin = require('firebase-admin');
+const fs = require('fs');
+
+// 1. Configurações (vêm das variáveis de ambiente)
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
+const FIREBASE_PROJECT_ID = "quicklinks-hub";
+const USER_ID = "J0WgudZ9vLQczDScYEdtTNU3B4N2"; // Seu UID
+
+// 2. PREPARA A CHAVE DO FIREBASE
+// Se estiver rodando no Railway, ele usa a variável de ambiente.
+// Se estiver rodando localmente, ele usa o arquivo serviceAccountKey.json.
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+  fs.writeFileSync('./serviceAccountKey.json', process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+}
+process.env.GOOGLE_APPLICATION_CREDENTIALS = "./serviceAccountKey.json";
+
+// 3. Inicializa o Firebase Admin
+admin.initializeApp({
+  credential: admin.credential.applicationDefault(),
+  projectId: FIREBASE_PROJECT_ID
+});
+const db = admin.firestore();
+
+// 4. Inicializa o Bot
+const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
+console.log("🤖 Bot do Telegram rodando...");
+
+// 5. Escuta as mensagens
+bot.on('message', async (msg) => {
+  const chatId = msg.chat.id;
+  const texto = msg.text;
+
+  if (texto === '/start') {
+    return bot.sendMessage(chatId, "👋 Olá! Envie seu link junto com a categoria.\nExemplo:\nhttps://notion.so Trabalho");
+  }
+
+  const partes = texto.split(' ');
+  const url = partes[0];
+  const categoria = partes.slice(1).join(' ') || 'Telegram';
+
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return bot.sendMessage(chatId, "❌ Formato inválido. Envie assim:\nhttps://exemplo.com Categoria");
+  }
+
+  try {
+    const novoLink = {
+      title: url.replace('https://', '').replace('http://', '').split('/')[0],
+      url: url,
+      category: categoria,
+      tags: 'telegram',
+      description: 'Adicionado via Telegram',
+      favorito: false,
+      previewImage: `https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true&meta=false&embed=screenshot.url`,
+      userId: USER_ID,
+      cliques: 0,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    await db.collection('links').add(novoLink);
+    bot.sendMessage(chatId, `✅ Link salvo!\n📂 Categoria: ${categoria}\n🔗 ${url}`);
+
+  } catch (error) {
+    console.error(error);
+    bot.sendMessage(chatId, "❌ Erro ao salvar no banco de dados.");
+  }
+});
