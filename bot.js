@@ -2,6 +2,7 @@ require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const admin = require('firebase-admin');
 const fs = require('fs');
+const http = require('http'); // ⚠️ ADICIONE ESTA LINHA AQUI
 
 // ⚠️ AQUI ESTÁ A PROTEÇÃO E A LEITURA DO TOKEN
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
@@ -72,6 +73,6 @@ const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('Bot is running');
-}).listen(PORT, () => {
+}).listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor web rodando na porta ${PORT}`);
 });
