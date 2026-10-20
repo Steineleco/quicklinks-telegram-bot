@@ -3,7 +3,13 @@ const TelegramBot = require('node-telegram-bot-api');
 const admin = require('firebase-admin');
 const fs = require('fs');
 
+// ⚠️ AQUI ESTÁ A PROTEÇÃO E A LEITURA DO TOKEN
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
+if (!TELEGRAM_TOKEN) {
+  console.error("❌ ERRO FATAL: A variável TELEGRAM_TOKEN não foi encontrada no Railway!");
+  process.exit(1);
+}
+
 const FIREBASE_PROJECT_ID = "quicklinks-hub";
 const USER_ID = "J0WgudZ9vLQczDScYEdtTNU3B4N2"; 
 
