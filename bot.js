@@ -67,3 +67,11 @@ bot.on('message', async (msg) => {
     bot.sendMessage(chatId, "❌ Erro ao salvar no banco de dados.");
   }
 });
+// ===== SERVIDOR WEB PARA O RENDER (ADICIONE NO FINAL) =====
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Bot is running');
+}).listen(PORT, () => {
+  console.log(`Servidor web rodando na porta ${PORT}`);
+});
