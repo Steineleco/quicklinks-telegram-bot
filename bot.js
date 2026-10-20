@@ -3,31 +3,26 @@ const TelegramBot = require('node-telegram-bot-api');
 const admin = require('firebase-admin');
 const fs = require('fs');
 
-// 1. Configurações (vêm das variáveis de ambiente)
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 const FIREBASE_PROJECT_ID = "quicklinks-hub";
-const USER_ID = "J0WgudZ9vLQczDScYEdtTNU3B4N2"; // Seu UID
+const USER_ID = "J0WgudZ9vLQczDScYEdtTNU3B4N2"; 
 
-// 2. PREPARA A CHAVE DO FIREBASE
-// Se estiver rodando no Railway, ele usa a variável de ambiente.
-// Se estiver rodando localmente, ele usa o arquivo serviceAccountKey.json.
+// --- A MÁGICA ACONTECE AQUI ---
+// Verifica se a variável de ambiente existe no Railway
 if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+  // Se existir, ele cria o arquivo serviceAccountKey.json na memória do Railway
   fs.writeFileSync('./serviceAccountKey.json', process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
 }
-process.env.GOOGLE_APPLICATION_CREDENTIALS = "./serviceAccountKey.json";
 
-// 3. Inicializa o Firebase Admin
 admin.initializeApp({
   credential: admin.credential.applicationDefault(),
   projectId: FIREBASE_PROJECT_ID
 });
 const db = admin.firestore();
 
-// 4. Inicializa o Bot
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 console.log("🤖 Bot do Telegram rodando...");
 
-// 5. Escuta as mensagens
 bot.on('message', async (msg) => {
   const chatId = msg.chat.id;
   const texto = msg.text;
