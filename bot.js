@@ -15,26 +15,31 @@ const FIREBASE_PROJECT_ID = "quicklinks-hub";
 const USER_ID = "J0WgudZ9vLQczDScYEdtTNU3B4N2"; 
 
 // ============================================================
-// INICIALIZAÇÃO DO FIREBASE (AQUI ESTÁ A CORREÇÃO)
+// INICIALIZAÇÃO DO FIREBASE (LÊ O BASE64 E CRIA O ARQUIVO)
 // ============================================================
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+  // Transforma o Base64 de volta em um arquivo JSON físico no Render
+  const credentials = Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON, 'base64').toString('utf-8');
+  fs.writeFileSync('./serviceAccountKey.json', credentials);
+  console.log("✅ Chave do Firebase criada com sucesso a partir do Base64!");
+} else {
+  console.error("❌ ERRO FATAL: Variável GOOGLE_APPLICATION_CREDENTIALS_JSON não encontrada!");
+}
+
+// Aponta o Firebase para o arquivo que acabamos de criar
+process.env.GOOGLE_APPLICATION_CREDENTIALS = "./serviceAccountKey.json";
+
 admin.initializeApp({
-  credential: admin.credential.cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    // A MÁGICA: transforma o texto "\n" em quebra de linha real
-    privateKey: process.env.FIREBASE_PRIVATE_KEY 
-      ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') 
-      : undefined
-  }),
-  projectId: process.env.FIREBASE_PROJECT_ID
+  credential: admin.credential.applicationDefault(),
+  projectId: FIREBASE_PROJECT_ID
 });
 
 const db = admin.firestore();
-console.log("✅ Firebase inicializado com sucesso!");
+console.log("🔥 Firebase conectado com sucesso!");
 console.log("🤖 Bot do Telegram rodando...");
 
 // ============================================================
-// O RESTO DO CÓDIGO CONTINUA IGUAL
+// LÓGICA DO BOT
 // ============================================================
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
@@ -77,7 +82,9 @@ bot.on('message', async (msg) => {
   }
 });
 
-// ===== SERVIDOR WEB PARA O RENDER =====
+// ============================================================
+// SERVIDOR WEB (MANTÉM O RENDER ACORDADO)
+// ============================================================
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
