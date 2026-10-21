@@ -2,33 +2,41 @@ require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const admin = require('firebase-admin');
 const fs = require('fs');
-const http = require('http'); // ⚠️ ADICIONE ESTA LINHA AQUI
+const http = require('http');
 
-// ⚠️ AQUI ESTÁ A PROTEÇÃO E A LEITURA DO TOKEN
+// ⚠️ LEITURA DO TOKEN DO TELEGRAM
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 if (!TELEGRAM_TOKEN) {
-  console.error("❌ ERRO FATAL: A variável TELEGRAM_TOKEN não foi encontrada no Railway!");
+  console.error("❌ ERRO FATAL: A variável TELEGRAM_TOKEN não foi encontrada!");
   process.exit(1);
 }
 
 const FIREBASE_PROJECT_ID = "quicklinks-hub";
 const USER_ID = "J0WgudZ9vLQczDScYEdtTNU3B4N2"; 
 
-// --- A MÁGICA ACONTECE AQUI ---
-// Verifica se a variável de ambiente existe no Railway
-if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-  // Se existir, ele cria o arquivo serviceAccountKey.json na memória do Railway
-  fs.writeFileSync('./serviceAccountKey.json', process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
-}
-
+// ============================================================
+// INICIALIZAÇÃO DO FIREBASE (AQUI ESTÁ A CORREÇÃO)
+// ============================================================
 admin.initializeApp({
-  credential: admin.credential.applicationDefault(),
-  projectId: FIREBASE_PROJECT_ID
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    // A MÁGICA: transforma o texto "\n" em quebra de linha real
+    privateKey: process.env.FIREBASE_PRIVATE_KEY 
+      ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') 
+      : undefined
+  }),
+  projectId: process.env.FIREBASE_PROJECT_ID
 });
-const db = admin.firestore();
 
-const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
+const db = admin.firestore();
+console.log("✅ Firebase inicializado com sucesso!");
 console.log("🤖 Bot do Telegram rodando...");
+
+// ============================================================
+// O RESTO DO CÓDIGO CONTINUA IGUAL
+// ============================================================
+const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
 bot.on('message', async (msg) => {
   const chatId = msg.chat.id;
@@ -68,7 +76,8 @@ bot.on('message', async (msg) => {
     bot.sendMessage(chatId, "❌ Erro ao salvar no banco de dados.");
   }
 });
-// ===== SERVIDOR WEB PARA O RENDER (ADICIONE NO FINAL) =====
+
+// ===== SERVIDOR WEB PARA O RENDER =====
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
